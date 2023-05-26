@@ -167,8 +167,13 @@ namespace Launcher
             var binFile = Path.GetFileNameWithoutExtension(settings.ClientBin);
             var binpath = Path.Combine(this._config.InstallDir, binFile);
 
-            IPAddress[] ipOrDns;
+            //IPAddress[] ipOrDns;
+            IPAddress ipOrDns = System.Net.IPAddress.Parse("127.0.0.1");
 
+            //added this line
+            settings.UseProxy = true;
+
+            /*
             try
             {
                 ipOrDns = Dns.GetHostAddresses(server.IpOrDns);
@@ -181,7 +186,7 @@ namespace Launcher
                 this.CheckServerStatus(false);
                 return;
             }
-
+            */
             var revertResolution = new Win32Api.DevMode();
 
             if (settings.Resize)
@@ -196,18 +201,26 @@ namespace Launcher
                 {
                     proxyServer = new ProxyServer();
                     proxyServer.LocalAddress = "127.0.0.1";
-                    proxyServer.LocalPort = new Random().Next(1025, 50000);
+                    //proxyServer.LocalPort = new Random().Next(1025, 50000);
+                    //this prevents port 2000 from getting chosen, which is our remote port!
+                    proxyServer.LocalPort = new Random().Next(2001, 50000);
 
-                    proxyServer.RemoteAddress = server.IpOrDns;
-                    proxyServer.RemotePort = server.Port;
+                    //proxyServer.RemoteAddress = server.IpOrDns;
+                    proxyServer.RemoteAddress = "127.0.0.1";
+                    //proxyServer.RemotePort = server.Port;
+                    proxyServer.RemotePort = 2000;
                     proxyServer.Start();
                 }
 
-                if(Lineage.Run(settings, this._config.InstallDir, settings.ClientBin,
-                    (ushort)(settings.UseProxy ? proxyServer.LocalPort : server.Port), settings.UseProxy ? null : ipOrDns[0]))
+                //if(Lineage.Run(settings, this._config.InstallDir, settings.ClientBin,
+                //    (ushort)(settings.UseProxy ? proxyServer.LocalPort : server.Port), settings.UseProxy ? null : ipOrDns[0]))
+                if (Lineage.Run(settings, this._config.InstallDir, settings.ClientBin,
+                    (ushort)(settings.UseProxy ? proxyServer.LocalPort : server.Port), settings.UseProxy ? null : ipOrDns))
                 {
-                    var client = new LineageClient(this._config.KeyName, binFile, this._config.InstallDir, 
-                        proxyServer, ipOrDns[0], server.Port, Clients);
+                    //var client = new LineageClient(this._config.KeyName, binFile, this._config.InstallDir,
+                    //    proxyServer, ipOrDns[0], server.Port, Clients);
+                    var client = new LineageClient(this._config.KeyName, binFile, this._config.InstallDir,
+                        proxyServer, ipOrDns, proxyServer.LocalPort, Clients);
                     client.Initialize();
 
                     lock (this._lockObject)
